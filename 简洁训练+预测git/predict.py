@@ -274,7 +274,7 @@ for i in range(80):
     modes, counts = mode(predict_category_list[2,:], axis=0)
 
     # 转换为一维数组（去除多余的维度）
-    pre = predict_category_list[0,:].flatten()
+    pre = predict_category_list[1,:].flatten()
     if pre[i]==label:
         category_right_number +=1
     label = int(i / 2)
@@ -282,7 +282,7 @@ for i in range(80):
     modes, counts = mode(predict_object_list[1,:], axis=0)
 
     # 转换为一维数组（去除多余的维度）
-    pre=predict_object_list[0,:].flatten()
+    pre=predict_object_list[1,:].flatten()
 
     if pre[i]  == label:
         object_right_number += 1
