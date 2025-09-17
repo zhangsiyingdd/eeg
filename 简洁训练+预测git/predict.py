@@ -209,6 +209,16 @@ def bp_filter(data,samp_rate):
     b, a = signal.butter(3, wn, 'bandpass')
     filter_data = signal.filtfilt(b, a, data)
     return filter_data
+def z_score(eeg_data):
+    # 对每个试次单独标准化
+    # axis=(1,2) 表示对当前试次的所有通道和时间点计算统计量
+    trial_means = np.mean(eeg_data, axis=(1, 2), keepdims=True)  # 形状：(80, 1, 1)
+    trial_stds = np.std(eeg_data, axis=(1, 2), keepdims=True)  # 形状：(80, 1, 1)
+
+    # 计算Z-score（添加小epsilon避免除零错误）
+    epsilon = 1e-8
+    z_score_per_trial = (eeg_data - trial_means) / (trial_stds + epsilon)
+    return z_score_per_trial
 
 path=os.path.dirname(os.getcwd())
 bdf_path = os.path.join(path, '7-24马博数据\zx', 'data.bdf')
@@ -222,7 +232,8 @@ for i in range(5):
     print(teeg.shape)# 80*59*250/
     teeg=notch_filter(teeg,50)
     # teeg=notch_filter(teeg,5)
-    teeg=whiten(teeg)
+    # teeg=whiten(teeg)
+    teeg=z_score(teeg)
     teeg=np.expand_dims(teeg,axis=1)
     teeg=teeg.astype(np.float32)
     # teeg = np.random.rand(10, 1 , 60, 250).astype(np.float32)
@@ -271,18 +282,20 @@ for i in range(80):
 
     label=int(i/20)
     # 结果的第一个元素是众数，第二个是出现次数
-    modes, counts = mode(predict_category_list[2,:], axis=0)
+    modes, counts = mode(predict_category_list[:,:], axis=0)
 
     # 转换为一维数组（去除多余的维度）
-    pre = predict_category_list[1,:].flatten()
+    pre = modes.flatten()
+    # pre = predict_category_list[0, :].flatten()
+    # pre = predict_category_list[4,:].flatten()
     if pre[i]==label:
         category_right_number +=1
     label = int(i / 2)
     # 结果的第一个元素是众数，第二个是出现次数
-    modes, counts = mode(predict_object_list[1,:], axis=0)
-
+    modes, counts = mode(predict_object_list[:,:], axis=0)
+    pre = modes.flatten()
     # 转换为一维数组（去除多余的维度）
-    pre=predict_object_list[1,:].flatten()
+    # pre=predict_object_list[0,:].flatten()
 
     if pre[i]  == label:
         object_right_number += 1

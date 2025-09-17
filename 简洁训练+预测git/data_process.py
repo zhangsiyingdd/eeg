@@ -5,12 +5,13 @@ from PIL import Image
 import mne
 import os
 import numpy as np
+# from dask.array.random import standard_normal
 from scipy.io import loadmat
 from scipy import signal
 import scipy
 from sklearn.discriminant_analysis import _cov
 import torch
-
+#
 # import open_clip
 #
 #
@@ -46,6 +47,10 @@ import torch
 #             with torch.no_grad():
 #                 image_fea = model.encode_image(image)
 #             img_train_feature.append(image_fea)
+#             img_train_feature.append(image_fea)
+#             img_train_feature.append(image_fea)
+#             img_train_feature.append(image_fea)
+#             img_train_feature.append(image_fea)
 #
 #
 #         else:
@@ -53,6 +58,10 @@ import torch
 #
 #             with torch.no_grad():
 #                 image_fea = model.encode_image(image)
+#             img_val_feature.append(image_fea)
+#             img_val_feature.append(image_fea)
+#             img_val_feature.append(image_fea)
+#             img_val_feature.append(image_fea)
 #             img_val_feature.append(image_fea)
 #
 #
@@ -74,7 +83,7 @@ import torch
 # print("图片完成")
 
 #导入脑电数据
-def load_data(data_bdf_name, evt_bdf_name):
+def load_data(data_bdf_name, evt_bdf_name,window_size):
     # 导入bdf文件数据
 
     bdf_path = data_bdf_name
@@ -124,7 +133,7 @@ def load_data(data_bdf_name, evt_bdf_name):
         data_list.append(data_temp)
     #160,10,59.250
     data_list=np.array(data_list)
-    data_list=data_list[:, :, :, 500+50:500+50+250]
+    data_list=data_list[:, :, :, 500+window_size*50:500+window_size*50+250]
 
 
     return data_list
@@ -184,6 +193,22 @@ def bp_filter(data,samp_rate):
     b, a = signal.butter(3, wn, 'bandpass')
     filter_data = signal.filtfilt(b, a, data)
     return filter_data
+def z_score(data):
+    epsilon = 1e-8  # 防止除零
+
+    # 1. 对每个试次的所有数据进行标准化（跨类别、通道和时间点）
+    # 计算每个试次的均值和标准差，保持维度一致
+    trial_means = np.mean(data, axis=( 2, 3), keepdims=True)  # 形状：(160, 10, 1, 1)
+    trial_stds = np.std(data, axis=(2, 3), keepdims=True)  # 形状：(160, 10, 1, 1)
+    z_score_per_trial = (data - trial_means) / (trial_stds + epsilon)
+    return z_score_per_trial
+
+def windows_img_feature(window_number):
+    train_img=np.load('img_train_feature_h14.npy',allow_pickle= True)
+    val_img=np.load('img_val_feature_h14.npy',allow_pickle=True)
+    combined_train_img = np.concatenate([train_img, train_img,train_img,train_img], axis=0)
+    combined_val_img = np.concatenate([val_img, val_img,val_img,val_img], axis=0)
+    return combined_train_img,combined_val_img
 
 bdf_path = 'Z:\个人文档\张思莹文档\\7-24马博数据\lx/data.bdf'
 event_path = 'Z:\个人文档\张思莹文档\\7-24马博数据\lx/evt.bdf'
@@ -191,16 +216,22 @@ event_path = 'Z:\个人文档\张思莹文档\\7-24马博数据\lx/evt.bdf'
 #
 # bdf_path = '../..//数据/4-14-zsy-第一次/离线/data.bdf'
 # event_path = '../..//数据/4-14-zsy-第一次//离线/evt.bdf'
+combined_train_data = np.random.rand(0, 59, 250)
+combined_val_data = np.random.rand(0, 59, 250)
+train_img_w4,val_img_w4=windows_img_feature(5)
+for i in range(1,5):
 
+    eeg_data = load_data(bdf_path, event_path,i)
+    eeg_data=notch_filter(eeg_data,50)
+    # whited_data,white_array=whiten(eeg_data)
+    standard_data=z_score(eeg_data)
+    train_data,val_data=split_data(standard_data)
+    combined_train_data = np.concatenate([combined_train_data, train_data], axis=0)
+    combined_val_data = np.concatenate([combined_val_data, val_data], axis=0)
 
-eeg_data = load_data(bdf_path, event_path)
-eeg_data=notch_filter(eeg_data,50)
-whited_data,white_array=whiten(eeg_data)
-train_data,val_data=split_data(whited_data)
-
-
-
-np.save('white_array.npy',white_array)
-np.save('eeg_train_data.npy', train_data)
-np.save('eeg_val_data.npy', val_data)
+np.save('img_train_feature_h14_w4.npy', train_img_w4)
+np.save('img_val_feature_h14_w4.npy', val_img_w4)
+# np.save('white_array.npy',white_array)
+np.save('eeg_train_data.npy', combined_train_data)
+np.save('eeg_val_data.npy', combined_val_data)
 

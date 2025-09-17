@@ -35,7 +35,7 @@ parser.add_argument('--dnn', default='clip', type=str)
 parser.add_argument('--epoch', default='200', type=int)
 parser.add_argument('--num_sub', default=1, type=int,
                     help='number of subjects used in the experiments. ')
-parser.add_argument('-batch_size', '--batch-size', default=200, type=int,
+parser.add_argument('-batch_size', '--batch-size', default=500, type=int,
                     metavar='N',
                     help='mini-batch size (default: 256), this is the total '
                          'batch size of all GPUs on the current node when '
@@ -218,9 +218,9 @@ class IE():
         return train_data, train_label,val_data
 
     def get_image_data(self):
-        train_img_feature = np.load('img_train_feature_h14.npy',allow_pickle=True)
+        train_img_feature = np.load('img_train_feature_h14_w4.npy',allow_pickle=True)
 
-        val_img_feature = np.load('img_val_feature_h14.npy',allow_pickle=True)
+        val_img_feature = np.load('img_val_feature_h14_w4.npy',allow_pickle=True)
 
         return train_img_feature, val_img_feature
 
